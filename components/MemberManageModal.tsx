@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, Users, Plus, Trash2, Edit2, Coins, Calendar, Clock, Lock, Briefcase } from 'lucide-react';
+import { X, Check, Users, Plus, Trash2, Edit2, Coins, Calendar, Clock, Lock, Briefcase, RotateCcw } from 'lucide-react';
 import { MemberProfile } from '../types';
 
 interface MemberManageModalProps {
@@ -36,8 +36,8 @@ const MemberManageModal: React.FC<MemberManageModalProps> = ({ isOpen, onClose, 
       id: Date.now().toString(),
       name: '新客戶',
       password: '123',
-      pettyCashBalance: 0, // Default 0
-      meetingPointsTotal: 6, // Default 6 hours
+      pettyCashBalance: 0, // Default 0 (Max 1000)
+      meetingPointsTotal: 6, // Default 6 hours (Max 120)
       meetingPointsUsed: 0,
       contractDate: new Date().toISOString().split('T')[0].replace(/-/g, '/')
     };
@@ -55,10 +55,6 @@ const MemberManageModal: React.FC<MemberManageModalProps> = ({ isOpen, onClose, 
   };
 
   const handleCancelEdit = () => {
-    // If it was a new unsaved member (check if id exists in original props or if logic allows), 
-    // strictly simpler here: just reset edit mode. 
-    // Ideally we might remove the item if it was just added but not saved, 
-    // but for simplicity we keep it in list until user explicitly deletes or saves.
     setEditingId(null);
   };
 
@@ -80,6 +76,19 @@ const MemberManageModal: React.FC<MemberManageModalProps> = ({ isOpen, onClose, 
     onClose();
   };
 
+  // Logic to simulate the monthly reset of points
+  const handleResetMonthlyUsage = () => {
+    if (window.confirm("確定要執行「每月重置」嗎？\n\n這將把所有會員的「本月已使用時數」歸零，恢復完整的每月額度。\n(此操作通常於每月 1 號由系統自動執行)")) {
+        const updated = localMembers.map(m => ({ ...m, meetingPointsUsed: 0 }));
+        setLocalMembers(updated);
+        // If we are currently editing someone, update the form view too
+        if (editingId) {
+             setEditForm(prev => ({ ...prev, meetingPointsUsed: 0 }));
+        }
+        alert("已完成每月額度重置！");
+    }
+  };
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[90%]">
@@ -95,14 +104,23 @@ const MemberManageModal: React.FC<MemberManageModalProps> = ({ isOpen, onClose, 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-          <div className="flex justify-between items-center mb-4">
-             <p className="text-sm text-gray-500">管理客戶登入資訊、零用金與點數設定。</p>
-             <button 
-               onClick={handleAddNew}
-               className="bg-brand-600 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-brand-700"
-             >
-               <Plus size={16} /> 新增客戶
-             </button>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+             <p className="text-sm text-gray-500">管理客戶資料、零用金與每月會議室額度。</p>
+             <div className="flex gap-2">
+                 <button 
+                   onClick={handleResetMonthlyUsage}
+                   className="bg-orange-100 text-orange-700 border border-orange-200 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-orange-200 transition-colors"
+                   title="模擬每月1號重置使用量"
+                 >
+                   <RotateCcw size={16} /> 重置月用量
+                 </button>
+                 <button 
+                   onClick={handleAddNew}
+                   className="bg-brand-600 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-brand-700 transition-colors"
+                 >
+                   <Plus size={16} /> 新增客戶
+                 </button>
+             </div>
           </div>
 
           <div className="space-y-4">
@@ -169,7 +187,7 @@ const MemberManageModal: React.FC<MemberManageModalProps> = ({ isOpen, onClose, 
                     </div>
 
                     <div>
-                       <label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1"><Clock size={12}/> 每月會議點數 (Total) [Max: 120]</label>
+                       <label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1"><Clock size={12}/> 每月會議點數額度 (Quota) [Max: 120]</label>
                        <input 
                         type="number"
                         max={120}
@@ -186,11 +204,20 @@ const MemberManageModal: React.FC<MemberManageModalProps> = ({ isOpen, onClose, 
                     </div>
 
                     <div>
-                       <label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1"><Clock size={12}/> 已使用點數 (Used)</label>
+                       <label className="text-xs font-bold text-gray-500 mb-1 block flex items-center justify-between">
+                          <span className="flex items-center gap-1"><Clock size={12}/> 本月已用時數 (Used)</span>
+                          <button 
+                            onClick={() => setEditForm({...editForm, meetingPointsUsed: 0})}
+                            className="text-[10px] text-brand-600 hover:bg-brand-50 px-1 rounded transition-colors"
+                          >
+                            歸零
+                          </button>
+                       </label>
                        <input 
                         type="number" 
+                        min={0}
                         value={editForm.meetingPointsUsed}
-                        onChange={e => setEditForm({...editForm, meetingPointsUsed: Number(e.target.value)})}
+                        onChange={e => setEditForm({...editForm, meetingPointsUsed: Math.max(0, Number(e.target.value))})}
                         className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white text-gray-900"
                       />
                     </div>
@@ -223,9 +250,9 @@ const MemberManageModal: React.FC<MemberManageModalProps> = ({ isOpen, onClose, 
                           </p>
                        </div>
                        <div>
-                          <p className="text-xs text-gray-400">會議點數</p>
+                          <p className="text-xs text-gray-400">本月餘額 / 月額度</p>
                           <p className="font-bold text-brand-600">
-                            {member.meetingPointsTotal - member.meetingPointsUsed} <span className="text-xs text-gray-400 font-normal">/ {member.meetingPointsTotal}</span>
+                            {member.meetingPointsTotal - member.meetingPointsUsed} <span className="text-xs text-gray-400 font-normal">/ {member.meetingPointsTotal} hr</span>
                           </p>
                        </div>
                     </div>

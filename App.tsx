@@ -16,7 +16,7 @@ import {
 import { BRANCHES, EQUIPMENTS, ANNOUNCEMENTS, INITIAL_SPACES, SPACE_AMENITIES, WIKI_CATEGORIES, BUSINESS_PARTNERS, INITIAL_OFFICE_TYPES, INITIAL_MEMBERS } from './constants';
 import { BranchId, Equipment, Announcement, LocationSpace, WikiCategory, BusinessPartner, OfficeType, AppDataBackup, MemberProfile } from './types';
 import * as Types from './types';
-import FloorPlan from './components/FloorPlan';
+import ValueServices from './components/ValueServices';
 import Assistant from './components/Assistant';
 import WikiUploadModal from './components/WikiUploadModal';
 import AnnouncementModal from './components/AnnouncementModal';
@@ -93,9 +93,6 @@ const App: React.FC = () => {
     e.preventDefault();
     
     // Find member by password (simple verification as per prompt "Client Password")
-    // Note: In a real app, verify both Account Name and Password.
-    // For this prototype, if admin wants simple login, we can check if any user has this password.
-    // However, to be more robust, let's look for a match.
     
     const matchedMember = members.find(m => m.password === memberPasswordInput);
 
@@ -112,8 +109,6 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setIsMemberLoggedIn(false);
     setCurrentUser(null);
-    // If admin was logged in, we might want to keep admin status or logout both?
-    // Usually admin also logs out.
     if (isAdmin) setIsAdmin(false);
   };
 
@@ -132,12 +127,8 @@ const App: React.FC = () => {
     e.preventDefault();
     if (adminPasswordInput === 'app5286!@#') {
       setIsAdmin(true);
-      // Admin implicitly gets a "System" user view or bypasses login?
-      // Let's set a dummy admin user if not already logged in
       if (!isMemberLoggedIn) {
         setIsMemberLoggedIn(true);
-        // Create a temporary admin profile for display
-        // The values here will be overridden by the calculation logic in renderServices
         setCurrentUser({
            id: 'admin',
            name: '系統管理員',
@@ -247,6 +238,16 @@ const App: React.FC = () => {
     setWikiItems([newItem, ...wikiItems]);
   };
 
+  const handleDeleteWikiItem = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!requireAdmin()) return;
+
+    if (window.confirm('確定要刪除此百科項目嗎？此動作無法復原。')) {
+      // Use functional update to ensure reliability
+      setWikiItems(prev => prev.filter(i => i.id !== id));
+    }
+  };
+
   const handleSaveAnnouncement = (item: Announcement) => {
     setAnnouncements(prev => {
       const exists = prev.find(a => a.id === item.id);
@@ -270,7 +271,7 @@ const App: React.FC = () => {
     if (!requireAdmin()) return;
 
     if (window.confirm('確定要刪除此公告嗎？此動作無法復原。')) {
-      setAnnouncements(announcements.filter(a => a.id !== id));
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
     }
   };
 
@@ -286,7 +287,7 @@ const App: React.FC = () => {
     }
 
     if (window.confirm(`確定要清除 ${expiredCount} 則已過期的公告嗎？`)) {
-       setAnnouncements(announcements.filter(a => a.date >= today));
+       setAnnouncements(prev => prev.filter(a => a.date >= today));
     }
   };
 
@@ -303,7 +304,7 @@ const App: React.FC = () => {
     if (!requireAdmin()) return;
 
     if (window.confirm('確定要刪除此空間嗎？此動作無法復原。')) {
-      setLocationSpaces(locationSpaces.filter(s => s.id !== id));
+      setLocationSpaces(prev => prev.filter(s => s.id !== id));
     }
   };
 
@@ -335,7 +336,7 @@ const App: React.FC = () => {
     if (!requireAdmin()) return;
     
     if (window.confirm('確定要下架此合作夥伴嗎？')) {
-      setBusinessPartners(businessPartners.filter(p => p.id !== id));
+      setBusinessPartners(prev => prev.filter(p => p.id !== id));
     }
   };
 
@@ -348,6 +349,15 @@ const App: React.FC = () => {
     e.stopPropagation();
     setEditingOfficeType(item);
     setIsOfficeEditModalOpen(true);
+  };
+
+  const handleDeleteOfficeType = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!requireAdmin()) return;
+
+    if (window.confirm('確定要刪除此辦公室類型嗎？此動作無法復原。')) {
+      setOfficeTypes(prev => prev.filter(o => o.id !== id));
+    }
   };
 
   const openOfficeDetail = (item: OfficeType) => {
@@ -387,6 +397,15 @@ const App: React.FC = () => {
       alert('系統查詢：目前您沒有待領取的包裹或郵件。');
     }
     setIsPackageModalOpen(false);
+  };
+  
+  // -- Value Service Actions --
+  const handleValueServiceClick = (id: string) => {
+    if (id === 'meal') {
+      setIsMealModalOpen(true);
+    } else {
+      alert(`您選擇了該服務，系統將通知專人與您聯繫。`);
+    }
   };
 
   // -- Views --
@@ -588,9 +607,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Interactive Map Preview */}
+      {/* Value Added Services (Replaced Floor Plan) */}
       <div className="px-6">
-        <FloorPlan />
+        <ValueServices onServiceClick={handleValueServiceClick} />
       </div>
     </div>
   );
@@ -660,6 +679,15 @@ const App: React.FC = () => {
                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
                             <span className="text-white font-bold text-sm">{type.title}</span>
                          </div>
+                         {/* Admin Delete Button */}
+                         {isAdmin && (
+                            <button
+                              onClick={(e) => handleDeleteOfficeType(type.id, e)}
+                              className="absolute top-2 left-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                         )}
                       </div>
                       <div className="p-3">
                          <p className="text-xs text-gray-500 line-clamp-2">{type.description}</p>
@@ -815,7 +843,16 @@ const App: React.FC = () => {
           {filteredItems.map(item => {
              const Icon = iconMap[item.iconName] || FileText;
              return (
-               <div key={item.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+               <div key={item.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all group relative">
+                  {/* Admin Delete Button */}
+                  {isAdmin && (
+                     <button
+                        onClick={(e) => handleDeleteWikiItem(item.id, e)}
+                        className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-gray-300 hover:text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                     >
+                        <Trash2 size={16} />
+                     </button>
+                  )}
                   <div className="flex items-start gap-4">
                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                         item.contentType === 'video' ? 'bg-red-50 text-red-500' :
@@ -1240,7 +1277,7 @@ const App: React.FC = () => {
 
                  <button 
                     onClick={() => handlePackageOption('send')}
-                    className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-200 transition-all group"
+                    className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all group"
                  >
                     <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 group-hover:bg-blue-200 group-hover:scale-110 transition-all">
                        <Send size={24} />
@@ -1362,6 +1399,15 @@ const App: React.FC = () => {
                              className="absolute top-2 right-2 bg-white/90 p-2 rounded-full text-brand-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
                           >
                              <Edit2 size={16} />
+                          </button>
+                       )}
+                       {/* Admin Delete Button */}
+                       {isAdmin && (
+                          <button
+                            onClick={(e) => handleDeleteOfficeType(type.id, e)}
+                            className="absolute top-2 left-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                          >
+                            <Trash2 size={12} />
                           </button>
                        )}
                     </div>
