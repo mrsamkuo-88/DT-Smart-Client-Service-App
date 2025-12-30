@@ -41,7 +41,7 @@ const App: React.FC = () => {
 
   // -- Auth State --
   const [isMemberLoggedIn, setIsMemberLoggedIn] = useState(false);
-  const [memberAccountInput, setMemberAccountInput] = useState(''); // Just for show, currently logic matches password
+  const [memberAccountInput, setMemberAccountInput] = useState('');
   const [memberPasswordInput, setMemberPasswordInput] = useState('');
   
   const [isAdmin, setIsAdmin] = useState(false);
@@ -91,9 +91,6 @@ const App: React.FC = () => {
 
   const handleMemberLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Find member by password (simple verification as per prompt "Client Password")
-    
     const matchedMember = members.find(m => m.password === memberPasswordInput);
 
     if (matchedMember) {
@@ -189,11 +186,7 @@ const App: React.FC = () => {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        
-        // Basic validation
-        if (!json.version || !json.timestamp) {
-          throw new Error('無效的備份檔案格式');
-        }
+        if (!json.version || !json.timestamp) throw new Error('無效的備份檔案格式');
 
         if (window.confirm(`確定要還原資料嗎？\n備份時間：${new Date(json.timestamp).toLocaleString()}\n注意：目前的資料將被覆蓋。`)) {
           if (json.wikiItems) setWikiItems(json.wikiItems);
@@ -202,16 +195,13 @@ const App: React.FC = () => {
           if (json.businessPartners) setBusinessPartners(json.businessPartners);
           if (json.officeTypes) setOfficeTypes(json.officeTypes);
           if (json.members) setMembers(json.members);
-          
           alert('資料還原成功！');
         }
       } catch (error) {
         console.error(error);
         alert('還原失敗：檔案格式錯誤或損毀。');
       } finally {
-        if (backupFileInputRef.current) {
-          backupFileInputRef.current.value = '';
-        }
+        if (backupFileInputRef.current) backupFileInputRef.current.value = '';
       }
     };
     reader.readAsText(file);
@@ -220,20 +210,17 @@ const App: React.FC = () => {
   // -- Member Management --
   const handleSaveMembers = (updatedMembers: MemberProfile[]) => {
     setMembers(updatedMembers);
-    // Update current user if their data changed
     if (currentUser) {
       const updatedCurrent = updatedMembers.find(m => m.id === currentUser.id);
       if (updatedCurrent) {
         setCurrentUser(updatedCurrent);
       } else if (currentUser.id !== 'admin') {
-         // If current user was deleted
          handleLogout();
       }
     }
   };
 
   // -- Content Actions --
-
   const handleAddWikiItem = (newItem: Equipment) => {
     setWikiItems([newItem, ...wikiItems]);
   };
@@ -241,9 +228,7 @@ const App: React.FC = () => {
   const handleDeleteWikiItem = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!requireAdmin()) return;
-
     if (window.confirm('確定要刪除此百科項目嗎？此動作無法復原。')) {
-      // Use functional update to ensure reliability
       setWikiItems(prev => prev.filter(i => i.id !== id));
     }
   };
@@ -251,9 +236,7 @@ const App: React.FC = () => {
   const handleSaveAnnouncement = (item: Announcement) => {
     setAnnouncements(prev => {
       const exists = prev.find(a => a.id === item.id);
-      if (exists) {
-        return prev.map(a => a.id === item.id ? item : a);
-      }
+      if (exists) return prev.map(a => a.id === item.id ? item : a);
       return [item, ...prev];
     });
     setEditingAnnouncement(null);
@@ -269,23 +252,25 @@ const App: React.FC = () => {
   const handleDeleteAnnouncement = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!requireAdmin()) return;
-
     if (window.confirm('確定要刪除此公告嗎？此動作無法復原。')) {
       setAnnouncements(prev => prev.filter(a => a.id !== id));
     }
   };
 
+  // Specific handler for modal (no event, pre-confirmed)
+  const handleModalDeleteAnnouncement = (id: string) => {
+    setAnnouncements(prev => prev.filter(a => a.id !== id));
+    setIsAnnouncementModalOpen(false);
+  };
+
   const handleClearExpired = () => {
     if (!requireAdmin()) return;
-
     const today = new Date().toISOString().split('T')[0];
     const expiredCount = announcements.filter(a => a.date < today).length;
-    
     if (expiredCount === 0) {
       alert('目前沒有已過期的公告。');
       return;
     }
-
     if (window.confirm(`確定要清除 ${expiredCount} 則已過期的公告嗎？`)) {
        setAnnouncements(prev => prev.filter(a => a.date >= today));
     }
@@ -302,7 +287,6 @@ const App: React.FC = () => {
   const handleDeleteSpace = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!requireAdmin()) return;
-
     if (window.confirm('確定要刪除此空間嗎？此動作無法復原。')) {
       setLocationSpaces(prev => prev.filter(s => s.id !== id));
     }
@@ -310,15 +294,13 @@ const App: React.FC = () => {
 
   const openSpaceDetail = (space: LocationSpace) => {
     setSelectedSpace(space);
-    setActiveSpaceImage(space.imageUrl); // Set cover as default active image
+    setActiveSpaceImage(space.imageUrl);
   };
 
   const handleSavePartner = (partner: BusinessPartner) => {
     setBusinessPartners(prev => {
       const exists = prev.find(p => p.id === partner.id);
-      if (exists) {
-        return prev.map(p => p.id === partner.id ? partner : p);
-      }
+      if (exists) return prev.map(p => p.id === partner.id ? partner : p);
       return [...prev, partner];
     });
     setEditingPartner(null);
@@ -334,7 +316,6 @@ const App: React.FC = () => {
   const handleDeletePartner = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!requireAdmin()) return;
-    
     if (window.confirm('確定要下架此合作夥伴嗎？')) {
       setBusinessPartners(prev => prev.filter(p => p.id !== id));
     }
@@ -354,7 +335,6 @@ const App: React.FC = () => {
   const handleDeleteOfficeType = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!requireAdmin()) return;
-
     if (window.confirm('確定要刪除此辦公室類型嗎？此動作無法復原。')) {
       setOfficeTypes(prev => prev.filter(o => o.id !== id));
     }
@@ -399,7 +379,6 @@ const App: React.FC = () => {
     setIsPackageModalOpen(false);
   };
   
-  // -- Value Service Actions --
   const handleValueServiceClick = (id: string) => {
     if (id === 'meal') {
       setIsMealModalOpen(true);
@@ -516,7 +495,6 @@ const App: React.FC = () => {
                 )}
 
                 <div className="flex gap-3">
-                  {/* Date Badge */}
                   <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg shrink-0 border ${
                     isExpired ? 'bg-gray-100 border-gray-200 text-gray-400' : 'bg-brand-50 border-brand-100 text-brand-600'
                   }`}>
@@ -540,7 +518,6 @@ const App: React.FC = () => {
                         </h4>
                      </div>
                      
-                     {/* Preview or Toggle hint */}
                      <div className="flex justify-between items-center mt-2">
                         <div className="text-xs text-gray-400 flex items-center gap-1">
                            {ann.details ? (
@@ -555,20 +532,20 @@ const App: React.FC = () => {
                         
                         {/* Admin Actions */}
                         {isAdmin && (
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 shrink-0 z-20 relative">
                             <button 
                               onClick={(e) => handleEditAnnouncement(ann, e)}
-                              className="text-gray-400 hover:text-brand-600 p-1"
+                              className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors"
                               title="編輯"
                             >
-                              <Edit2 size={14} />
+                              <Edit2 size={16} />
                             </button>
                             <button 
                               onClick={(e) => handleDeleteAnnouncement(ann.id, e)}
-                              className="text-gray-400 hover:text-red-500 p-1"
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                               title="刪除"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         )}
@@ -576,7 +553,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Expanded Details */}
                 {isExpanded && ann.details && (
                   <div className="mt-3 pt-3 border-t border-gray-100 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div className="flex items-start gap-2">
@@ -607,7 +583,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Value Added Services (Replaced Floor Plan) */}
+      {/* Value Added Services */}
       <div className="px-6">
         <ValueServices onServiceClick={handleValueServiceClick} />
       </div>
@@ -654,7 +630,7 @@ const App: React.FC = () => {
           </div>
         ))}
         
-        {/* Office Types Section - Hidden for Minlun Branch */}
+        {/* Office Types Section */}
         {selectedBranch !== BranchId.MINLUN && (
            <>
              <div className="flex justify-between items-center mt-6 mb-2">
@@ -683,9 +659,10 @@ const App: React.FC = () => {
                          {isAdmin && (
                             <button
                               onClick={(e) => handleDeleteOfficeType(type.id, e)}
-                              className="absolute top-2 left-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                              className="absolute top-2 left-2 bg-red-500 text-white p-2 rounded-full shadow-md z-20 hover:bg-red-600 transition-colors"
+                              title="刪除"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={14} />
                             </button>
                          )}
                       </div>
@@ -717,24 +694,26 @@ const App: React.FC = () => {
             <div 
               key={space.id}
               onClick={() => openSpaceDetail(space)}
-              className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+              className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer relative"
             >
               <div className="h-40 bg-gray-100 relative">
                 <img src={space.imageUrl} alt={space.name} className="w-full h-full object-cover" />
-                <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
+                <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm z-10">
                   {space.capacity}
                 </div>
+                {/* Admin Delete Button - Increased z-index to be above video overlays */}
                 {isAdmin && (
                   <button 
                     onClick={(e) => handleDeleteSpace(space.id, e)}
-                    className="absolute top-2 left-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    className="absolute top-2 left-2 bg-red-500 text-white p-2 rounded-full shadow-md z-20 hover:bg-red-600 transition-colors"
+                    title="刪除空間"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={14} />
                   </button>
                 )}
                 {/* Play Icon Overlay if video exists */}
                 {space.videoUrl && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-0">
                      <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center text-white">
                         <PlayCircle size={20} fill="currentColor" className="opacity-90" />
                      </div>
@@ -774,7 +753,6 @@ const App: React.FC = () => {
   };
 
   const renderWiki = () => {
-    // Filter Items
     const filteredItems = wikiItems.filter(item => {
       const matchesSearch = item.title.includes(searchTerm) || item.description.includes(searchTerm);
       const matchesCategory = activeWikiCategory === 'all' || item.category === activeWikiCategory;
@@ -806,7 +784,6 @@ const App: React.FC = () => {
              )}
           </div>
 
-          {/* Categories */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             <button
                onClick={() => setActiveWikiCategory('all')}
@@ -844,13 +821,14 @@ const App: React.FC = () => {
              const Icon = iconMap[item.iconName] || FileText;
              return (
                <div key={item.id} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all group relative">
-                  {/* Admin Delete Button */}
+                  {/* Admin Delete Button - High Z-Index */}
                   {isAdmin && (
                      <button
                         onClick={(e) => handleDeleteWikiItem(item.id, e)}
-                        className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-gray-300 hover:text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        className="absolute top-2 right-2 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-100 shadow-sm z-20 transition-all"
+                        title="刪除"
                      >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                      </button>
                   )}
                   <div className="flex items-start gap-4">
@@ -870,7 +848,6 @@ const App: React.FC = () => {
                         </div>
                         <p className="text-xs text-gray-500 mb-2">{item.description}</p>
                         
-                        {/* Content Preview */}
                         {item.contentType === 'guide' && item.instructions && (
                            <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 space-y-1">
                               {item.instructions.slice(0, 3).map((inst, i) => (
@@ -929,7 +906,7 @@ const App: React.FC = () => {
 
        <div className="grid grid-cols-1 gap-4">
           {businessPartners.map(partner => (
-             <div key={partner.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex gap-4 group hover:border-brand-200 transition-all">
+             <div key={partner.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex gap-4 group hover:border-brand-200 transition-all relative">
                 <div className={`w-16 h-16 rounded-xl shrink-0 flex items-center justify-center overflow-hidden ${partner.logoUrl ? 'bg-white border border-gray-100' : partner.logoColor + ' text-white'}`}>
                    {partner.logoUrl ? (
                       <img src={partner.logoUrl} alt={partner.name} className="w-full h-full object-cover" />
@@ -937,25 +914,7 @@ const App: React.FC = () => {
                       <span className="text-xl font-bold">{partner.name.charAt(0)}</span>
                    )}
                 </div>
-                <div className="flex-1 min-w-0 relative">
-                   {/* Admin Controls */}
-                   {isAdmin && (
-                      <div className="absolute top-0 right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button 
-                            onClick={(e) => handleEditPartner(partner, e)}
-                            className="p-1.5 text-gray-400 hover:text-brand-600 bg-gray-50 rounded"
-                         >
-                            <Edit2 size={14} />
-                         </button>
-                         <button 
-                            onClick={(e) => handleDeletePartner(partner.id, e)}
-                            className="p-1.5 text-gray-400 hover:text-red-500 bg-gray-50 rounded"
-                         >
-                            <Trash2 size={14} />
-                         </button>
-                      </div>
-                   )}
-                   
+                <div className="flex-1 min-w-0">
                    <div className="flex flex-col h-full">
                       <div>
                         <span className="text-[10px] text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full font-bold mb-1 inline-block">
@@ -977,6 +936,24 @@ const App: React.FC = () => {
                       )}
                    </div>
                 </div>
+                
+                {/* Admin Controls - Visible and elevated */}
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 flex gap-2 z-20">
+                     <button 
+                        onClick={(e) => handleEditPartner(partner, e)}
+                        className="p-2 text-gray-500 hover:text-brand-600 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md transition-all"
+                     >
+                        <Edit2 size={14} />
+                     </button>
+                     <button 
+                        onClick={(e) => handleDeletePartner(partner.id, e)}
+                        className="p-2 text-white hover:text-white bg-red-500 border border-red-500 rounded-full shadow-sm hover:shadow-md transition-all hover:bg-red-600"
+                     >
+                        <Trash2 size={14} />
+                     </button>
+                  </div>
+               )}
              </div>
           ))}
 
@@ -1040,23 +1017,18 @@ const App: React.FC = () => {
       );
     }
 
-    // Determine values to display based on role
     let displayCash = 0;
     let displayTotalPoints = 0;
     let displayUsedPoints = 0;
     let displayContractDate = currentUser?.contractDate || 'N/A';
 
     if (currentUser?.id === 'admin') {
-      // Admin Mode: Aggregate all member data
-      // Filter out admin self if it exists in the list (it usually doesn't, but safe to check)
       const validMembers = members.filter(m => m.id !== 'admin');
-      
       displayCash = validMembers.reduce((acc, m) => acc + m.pettyCashBalance, 0);
       displayTotalPoints = validMembers.reduce((acc, m) => acc + m.meetingPointsTotal, 0);
       displayUsedPoints = validMembers.reduce((acc, m) => acc + m.meetingPointsUsed, 0);
       displayContractDate = '系統總覽';
     } else if (currentUser) {
-      // Member Mode: Individual data
       displayCash = currentUser.pettyCashBalance;
       displayTotalPoints = currentUser.meetingPointsTotal;
       displayUsedPoints = currentUser.meetingPointsUsed;
@@ -1396,7 +1368,7 @@ const App: React.FC = () => {
                        {isAdmin && (
                           <button 
                              onClick={(e) => handleEditOfficeType(type, e)}
-                             className="absolute top-2 right-2 bg-white/90 p-2 rounded-full text-brand-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                             className="absolute top-2 right-2 bg-white/90 p-2 rounded-full text-brand-600 shadow-sm z-20 hover:bg-white"
                           >
                              <Edit2 size={16} />
                           </button>
@@ -1405,9 +1377,10 @@ const App: React.FC = () => {
                        {isAdmin && (
                           <button
                             onClick={(e) => handleDeleteOfficeType(type.id, e)}
-                            className="absolute top-2 left-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                            className="absolute top-2 left-2 bg-red-500 text-white p-2 rounded-full shadow-md z-20 hover:bg-red-600 transition-colors"
+                            title="刪除"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                           </button>
                        )}
                     </div>
@@ -1519,6 +1492,7 @@ const App: React.FC = () => {
         isOpen={isAnnouncementModalOpen}
         onClose={() => setIsAnnouncementModalOpen(false)}
         onSave={handleSaveAnnouncement}
+        onDelete={handleModalDeleteAnnouncement}
         initialData={editingAnnouncement}
       />
       

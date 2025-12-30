@@ -1,16 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Megaphone, Calendar, AlertCircle, Info, PartyPopper, Check, Link as LinkIcon, FileText } from 'lucide-react';
+import { X, Megaphone, Calendar, AlertCircle, Info, PartyPopper, Check, Link as LinkIcon, FileText, Trash2 } from 'lucide-react';
 import { Announcement } from '../types';
 
 interface AnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (item: Announcement) => void;
+  onDelete?: (id: string) => void;
   initialData?: Announcement | null;
 }
 
-const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
+const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData }) => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<Announcement['type']>('info');
@@ -49,6 +50,14 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
 
     onSave(newAnnouncement);
     onClose();
+  };
+
+  const handleDeleteClick = () => {
+    if (initialData && onDelete) {
+      if (window.confirm('確定要刪除此公告嗎？此動作無法復原。')) {
+        onDelete(initialData.id);
+      }
+    }
   };
 
   return (
@@ -169,6 +178,16 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
 
           {/* Footer Actions */}
           <div className="pt-4 flex gap-3 border-t border-gray-100 mt-2">
+             {initialData && onDelete && (
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  className="px-4 py-2 text-red-500 font-medium hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 flex items-center justify-center"
+                  title="刪除公告"
+                >
+                  <Trash2 size={20} />
+                </button>
+             )}
              <button 
               type="button"
               onClick={onClose}
