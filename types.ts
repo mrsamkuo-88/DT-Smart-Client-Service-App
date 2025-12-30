@@ -4,7 +4,8 @@ export type Tab = 'home' | 'locations' | 'wiki' | 'services' | 'business';
 export enum BranchId {
   MINQUAN = 'minquan',
   SIWEI = 'siwei',
-  YANCHENG = 'yancheng'
+  YANCHENG = 'yancheng',
+  MINLUN = 'minlun'
 }
 
 export interface Branch {
@@ -77,4 +78,25 @@ export interface BusinessPartner {
   website?: string;
   logoColor: string; // Fallback for mock UI purpose
   logoUrl?: string; // New: Uploaded image
+}
+
+export interface MemberProfile {
+  id: string;
+  name: string; // Company/Client Name
+  password: string; // Login Password
+  pettyCashBalance: number; // 零用金餘額
+  meetingPointsTotal: number; // 會議室點數(每月)
+  meetingPointsUsed: number; // 已使用時數/點數
+  contractDate: string; // 合約到期日
+}
+
+export interface AppDataBackup {
+  version: string;
+  timestamp: string;
+  wikiItems: Equipment[];
+  announcements: Announcement[];
+  locationSpaces: LocationSpace[];
+  businessPartners: BusinessPartner[];
+  officeTypes: OfficeType[];
+  members: MemberProfile[];
 }

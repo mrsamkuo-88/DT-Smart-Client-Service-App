@@ -1,5 +1,5 @@
 
-import { Branch, BranchId, Equipment, FoodSpot, Announcement, LocationSpace, BusinessPartner, OfficeType } from './types';
+import { Branch, BranchId, Equipment, FoodSpot, Announcement, LocationSpace, BusinessPartner, OfficeType, MemberProfile } from './types';
 import { Printer, Wifi, Projector, KeyRound, Coffee, MonitorPlay } from 'lucide-react';
 
 export const BRANCHES: Branch[] = [
@@ -23,6 +23,13 @@ export const BRANCHES: Branch[] = [
     address: '高雄市鹽埕區大勇路11號3樓',
     mrt: '鹽埕埔站 2號出口',
     image: 'https://picsum.photos/800/600?random=3'
+  },
+  {
+    id: BranchId.MINLUN,
+    name: '明倫館 (Minlun)',
+    address: '高雄市鼓山區明倫路59號',
+    mrt: '巨蛋站 1號出口',
+    image: 'https://picsum.photos/800/600?random=4'
   }
 ];
 
@@ -93,7 +100,6 @@ export const INITIAL_OFFICE_TYPES: OfficeType[] = [
   }
 ];
 
-// Initial data for specific rooms based on user request
 export const INITIAL_SPACES: LocationSpace[] = [
   // --- Minquan ---
   { id: 'mq-20a', branchId: BranchId.MINQUAN, name: '20A 會議室', description: '適合中型會議，配備高清投影。', capacity: '10-12人', imageUrl: 'https://picsum.photos/400/300?random=10', images: getImages('https://picsum.photos/400/300?random=10'), features: ['wifi', 'projector', 'whiteboard', 'ac', 'power'] },
@@ -112,6 +118,10 @@ export const INITIAL_SPACES: LocationSpace[] = [
   // --- Yancheng ---
   { id: 'yc-2f', branchId: BranchId.YANCHENG, name: '2F 會議室', description: '駁二特區旁的商務據點。', capacity: '8人', imageUrl: 'https://picsum.photos/400/300?random=20', images: getImages('https://picsum.photos/400/300?random=20'), features: ['wifi', 'tv'] },
   { id: 'yc-4f', branchId: BranchId.YANCHENG, name: '4F 多元場地', description: '寬敞空間，適合文創活動或大型會議。', capacity: '40人', imageUrl: 'https://picsum.photos/400/300?random=21', images: getImages('https://picsum.photos/400/300?random=21'), features: ['wifi', 'projector', 'mic', 'speaker', 'ac'] },
+
+  // --- Minlun ---
+  { id: 'ml-3f-a', branchId: BranchId.MINLUN, name: '3F 會議室 A', description: '溫馨舒適的小型會議空間，適合商務洽談。', capacity: '6-8人', imageUrl: 'https://picsum.photos/400/300?random=30', images: getImages('https://picsum.photos/400/300?random=30'), features: ['wifi', 'tv', 'whiteboard', 'coffee'] },
+  { id: 'ml-3f-hall', branchId: BranchId.MINLUN, name: '3F 多功能展演廳', description: '寬敞無柱空間，適合舉辦講座、發表會或工作坊。', capacity: '50-80人', imageUrl: 'https://picsum.photos/400/300?random=31', images: getImages('https://picsum.photos/400/300?random=31'), features: ['wifi', 'projector', 'mic', 'speaker', 'ac', 'power'] },
 ];
 
 export const EQUIPMENTS: Equipment[] = [
@@ -289,4 +299,25 @@ export const RULES = [
   '離開座位超過 30 分鐘，請將個人物品帶離桌面。',
   '冰箱每週五下午 17:00 清空，請標示個人物品。',
   '最後一位離開者，請協助關閉公共區域燈光與冷氣。'
+];
+
+export const INITIAL_MEMBERS: MemberProfile[] = [
+  {
+    id: 'daoteng-demo',
+    name: '道騰示範會員',
+    password: 'app5286',
+    pettyCashBalance: 3500,
+    meetingPointsTotal: 120,
+    meetingPointsUsed: 40,
+    contractDate: '2024/12/31'
+  },
+  {
+    id: 'cloud-tech',
+    name: '雲端數位科技',
+    password: 'cloud',
+    pettyCashBalance: 10000,
+    meetingPointsTotal: 200,
+    meetingPointsUsed: 150,
+    contractDate: '2025/06/30'
+  }
 ];
